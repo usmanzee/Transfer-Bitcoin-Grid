@@ -97,6 +97,9 @@
                     if (this.tryCount <= this.retryLimit) {
                         $.ajax(this);
                         return;
+                    } else {
+                        $("#loading_div").hide();
+                        $.toaster({ priority : 'danger', title : 'Failed', message : "Error while processing request." });
                     }
                 }
             });

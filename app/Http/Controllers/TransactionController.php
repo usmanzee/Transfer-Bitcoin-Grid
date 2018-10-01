@@ -46,6 +46,7 @@ class TransactionController extends Controller
 
     public function transferPayment(Request $request) {
     	 $response = (new Coinbase)->createClientAndSendPayment($request->bitcoinAccountAddress, $request->amountInBTC);
+         dd($response);
     	 if($response['status']) {
     	 	UserTransactionRequest::where('id', $request->requestId)->update([
     	 		'status' => 1
