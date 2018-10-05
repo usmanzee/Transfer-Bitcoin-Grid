@@ -17,6 +17,8 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+Route::post('save-admin-account-detail', 'TransactionController@saveAdminAccountDetail');
+
 Route::post('save-user-transaction-request', 'TransactionController@saveUserTransactionRequest');
 
 Route::post('transfer-payment', 'TransactionController@transferPayment');

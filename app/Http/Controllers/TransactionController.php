@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 
 use App\UserTransactionRequest;
+use App\AdminAccountDetail;
 use App\Coinbase;
 
 class TransactionController extends Controller
@@ -15,18 +16,28 @@ class TransactionController extends Controller
 	}
     public function index() {
     	$transactionRequests = UserTransactionRequest::all();
-    	$exchangeRates = $this->curlGetRequest('https://api.coinbase.com/v2/exchange-rates?currency=BTC');
-    	$exchangeRates = json_decode($exchangeRates);
-    	
+    	$adminAccountDetail = AdminAccountDetail::first();
+
     	foreach ($transactionRequests as $key => $transactionRequest) {
     		$transactionRequest->amountInSatoshi = $transactionRequest->amount;
-    		$decimalPlaces = strlen($transactionRequest->amountInSatoshi)+8;
-    		$transactionRequest->amountInBTC = number_format($transactionRequest->amount/100000000, $decimalPlaces, '.', '');
-    		$transactionRequest->amountInUSD = ($transactionRequest->amount/100000000)*$exchangeRates->data->rates->USD;
-
+            $transactionRequest->amountInBTC = $transactionRequest->amount/100000000;
     	}
 
-    	return view('transaction-requests', compact('transactionRequests'));
+    	return view('transaction-requests', compact('adminAccountDetail','transactionRequests'));
+    }
+
+    public function saveAdminAccountDetail(Request $request) {
+
+        AdminAccountDetail::create([
+            'blockchain_id' => $request->blockchainId,
+            'password' => $request->password,
+            'address_index' => $request->bitcoinAddressIndex
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Your account has been saved.'
+        ]);
     }
 
     public function saveUserTransactionRequest(Request $request ) {
@@ -45,13 +56,24 @@ class TransactionController extends Controller
     }
 
     public function transferPayment(Request $request) {
-    	 $response = (new Coinbase)->createClientAndSendPayment($request->bitcoinAccountAddress, $request->amountInBTC);
-    	 if($response['status']) {
-    	 	UserTransactionRequest::where('id', $request->requestId)->update([
-    	 		'status' => 1
-    	 	]);
-    	 }
-    	 return response()->json($response);
+
+        $baseUrl = "http://blockchain.logicsbay.com:3000";
+        $adminAccountDetail = AdminAccountDetail::first();
+
+        $addressIndex = ($adminAccountDetail->address_index) ? $adminAccountDetail->address_index : 0;
+
+        $url = $baseUrl."/merchant/".$adminAccountDetail->blockchain_id."/payment?password=".$adminAccountDetail->password."&to=".$request->bitcoinAccountAddress."&amount=".$request->amountInSatoshi."&from=".$addressIndex;
+
+        echo $baseUrl."/merchant/".$adminAccountDetail->blockchain_id."/payment?password=".$adminAccountDetail->password."&to=".$request->bitcoinAccountAddress."&amount=".$request->amountInSatoshi."&from=".$addressIndex;
+        die;
+
+    	 // $response = (new Coinbase)->createClientAndSendPayment($request->bitcoinAccountAddress, $request->amountInBTC);
+    	 // if($response['status']) {
+    	 // 	UserTransactionRequest::where('id', $request->requestId)->update([
+    	 // 		'status' => 1
+    	 // 	]);
+    	 // }
+    	 // return response()->json($response);
     }
 
     public function curlGetRequest($url) {
