@@ -27,6 +27,7 @@ class Coinbase extends Model
 		$transaction = Transaction::send();
 		$transaction->setToBitcoinAddress($address);
 		$transaction->setAmount(new Money($amount, CurrencyCode::BTC));
+
 		//$transaction->setFee('0.0001');
 		//$transaction->setDescription('this is optional');
 
