@@ -15,19 +15,24 @@ class TransactionController extends Controller
 		$this->middleware('auth', ['except' => ['saveUserTransactionRequest']]);
 	}
     public function index() {
+        $adminAccountExists = false;
     	$transactionRequests = UserTransactionRequest::all();
     	$adminAccountDetail = AdminAccountDetail::first();
+        if(!is_null($adminAccountDetail)) {
+            $adminAccountExists = true;
+        }
 
     	foreach ($transactionRequests as $key => $transactionRequest) {
     		$transactionRequest->amountInSatoshi = $transactionRequest->amount;
             $transactionRequest->amountInBTC = $transactionRequest->amount/100000000;
     	}
 
-    	return view('transaction-requests', compact('adminAccountDetail','transactionRequests'));
+    	return view('transaction-requests', compact('adminAccountExists', 'adminAccountDetail','transactionRequests'));
     }
 
     public function saveAdminAccountDetail(Request $request) {
 
+        //dd($request->all());
         AdminAccountDetail::create([
             'blockchain_id' => $request->blockchainId,
             'password' => $request->password,
@@ -63,17 +68,21 @@ class TransactionController extends Controller
         $addressIndex = ($adminAccountDetail->address_index) ? $adminAccountDetail->address_index : 0;
 
         $url = $baseUrl."/merchant/".$adminAccountDetail->blockchain_id."/payment?password=".$adminAccountDetail->password."&to=".$request->bitcoinAccountAddress."&amount=".$request->amountInSatoshi."&from=".$addressIndex;
+        $response = $this->curlGetRequest($url);
+        $response = json_decode($response);
 
-        echo $baseUrl."/merchant/".$adminAccountDetail->blockchain_id."/payment?password=".$adminAccountDetail->password."&to=".$request->bitcoinAccountAddress."&amount=".$request->amountInSatoshi."&from=".$addressIndex;
-        die;
-
-    	 // $response = (new Coinbase)->createClientAndSendPayment($request->bitcoinAccountAddress, $request->amountInBTC);
-    	 // if($response['status']) {
-    	 // 	UserTransactionRequest::where('id', $request->requestId)->update([
-    	 // 		'status' => 1
-    	 // 	]);
-    	 // }
-    	 // return response()->json($response);
+        if(isset($response->success)) {
+            $output = [
+                'status' => true,
+                'message' => $response->message
+            ];
+        } else if($response->error) {
+            $output = [
+                'status' => false,
+                'message' => $response->error
+            ];
+        }
+        return $output;
     }
 
     public function curlGetRequest($url) {

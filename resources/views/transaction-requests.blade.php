@@ -66,17 +66,19 @@
 <script type="text/javascript">
     $(document).ready(function() {
         $('#example').DataTable();
-        var adminAccountDetail = "<?php echo $adminAccountDetail ?>";
+        var adminAccountExists = false;
+        var adminAccountExists = "<?php echo $adminAccountExists ?>";
 
         $(".payment_button").click(function(e) {
             e.preventDefault();
-            //$("#loading_div").show();
+            $("#loading_div").show();
             var requestId = $(this).attr('requestId');
             var amountInSatoshi = $(this).attr('amountInSatoshi');
             var bitcoinAccountAddress = $(this).attr('bitcoinAccountAddress');
 
             if(amountInSatoshi && requestId) {
-                if(adminAccountDetail != " " && adminAccountDetail != null) {
+                console.log(adminAccountExists);
+                if(!adminAccountExists) {
                     $.confirm({
                         title: 'Transfer BTC',
                         content: ' <p><b>Note: </b>Please enter the required information to transfer amount.</p> ' +
@@ -115,16 +117,17 @@
                                             bitcoinAddressIndex: bitcoinAddressIndex
                                         },
                                         success: function(response){
-                                            //$("#loading").hide();
+                                            $("#loading").hide();
                                             if(response.status){
                                                 $.toaster({ priority : 'success', title : 'Success!', message : response.message });
+                                                accountExists = true;
                                                 transferAmount(requestId, amountInSatoshi, bitcoinAccountAddress);
                                             }else{
                                                 $.toaster({ priority : 'danger', title : 'Failed!', message : response.message });
                                             }
                                         },
                                         fail: function(){
-                                            //$("#loading").hide();
+                                            $("#loading").hide();
                                             $.toaster({ priority : 'danger', title : 'Failed!', message : 'Request Failed!' });
                                         }
                                     });
@@ -163,7 +166,7 @@
                 bitcoinAccountAddress: bitcoinAccountAddress,
             },
             success: function(response) {
-                //$("#loading_div").hide();
+                $("#loading_div").hide();
                 if(response.status) {
                     $.toaster({ priority : 'success', title : 'Success', message : response.message });
                     $("#action_link_"+requestId).html('Paid');
