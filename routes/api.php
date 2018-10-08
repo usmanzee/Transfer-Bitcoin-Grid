@@ -22,3 +22,5 @@ Route::post('save-admin-account-detail', 'TransactionController@saveAdminAccount
 Route::post('save-user-transaction-request', 'TransactionController@saveUserTransactionRequest');
 
 Route::post('transfer-payment', 'TransactionController@transferPayment');
+
+Route::post('delete-admin-account-detail', 'TransactionController@deleteAdminAccountDetail');

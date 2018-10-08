@@ -6,6 +6,37 @@
 @section('content')
 <div class="row">
     <div class="col-md-12">
+        <div class="jumbotron jumbotron-fluid">
+            <div class="container-fluid">
+                <h2 class="display-4">Bitcoin Transfer Grid</h2>
+                <div id="admin_account_div">
+                    @if($adminAccountDetail)
+                    <table class="table table-dark">
+                        <thead>
+                            <tr>
+                              <th scope="col">#</th>
+                              <th scope="col">Blockchain login Id</th>
+                              <th scope="col">Password</th>
+                              <th scope="col">Index (Number)</th>
+                              <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                              <th scope="row">1</th>
+                              <td>{{ $adminAccountDetail->blockchain_id }}</td>
+                              <td>{{ $adminAccountDetail->password }}</td>
+                              <td>{{ $adminAccountDetail->address_index }}</td>
+                              <td><a href="" id="delete_admin_account">Delete</a></td>
+                            </tr>
+                      </tbody>
+                    </table>
+                    @else
+                    <p class="lead">Please <a href="{{ url('add-admin-account-detail') }}" style="text-decoration: underline;">click here</a> to add your blockchain account details.</p>
+                    @endif
+                </div>
+            </div>
+        </div>
         <table id="example" class="table table-striped table-bordered" style="width:100%">
             <thead>
                 <tr>
@@ -71,13 +102,11 @@
 
         $(".payment_button").click(function(e) {
             e.preventDefault();
-            $("#loading_div").show();
             var requestId = $(this).attr('requestId');
             var amountInSatoshi = $(this).attr('amountInSatoshi');
             var bitcoinAccountAddress = $(this).attr('bitcoinAccountAddress');
 
             if(amountInSatoshi && requestId) {
-                console.log(adminAccountExists);
                 if(!adminAccountExists) {
                     $.confirm({
                         title: 'Transfer BTC',
@@ -91,13 +120,14 @@
                                 '<br>'+
                                 '<label for="bitcoin_address_index">Bitcoin Address Index:</label>' +
                                 '<input type="text" id="bitcoin_address_index" placeholder="Enter Bitcoin Address" value="0" class="form-control" required />' +
-                                '<small style="color:red">Bitcoin address index is the address number: after login go to <b>settings</b> then <b>wallets & addresses</b> where you will find the addresses starts from <b>0</b> </small>'+
+                                '<small style="color:red">Bitcoin address index is the address number: after login go to <b>settings</b> then <b>wallets & addresses</b> where you will find the list of addresses starting from <b>0</b> </small>'+
                         '</form>',
                         buttons: {
                             formSubmit: {
                                 text: 'Send',
                                 btnClass: 'btn btn-success',
                                 action: function () {
+                                    $("#loading_div").show();
                                     var blockchainId = this.$content.find('#blockchain_id').val();
                                     var password = this.$content.find('#password').val();
                                     var bitcoinAddressIndex = this.$content.find('#bitcoin_address_index').val();
@@ -111,24 +141,29 @@
                                     $.ajax({
                                         url: "{{ url('api/save-admin-account-detail') }}",
                                         type: 'POST',
+                                        tryCount : 0,
+                                        retryLimit : 3,
                                         data: {
                                             blockchainId: blockchainId,
                                             password: password,
                                             bitcoinAddressIndex: bitcoinAddressIndex
                                         },
                                         success: function(response){
-                                            $("#loading").hide();
+                                            $("#loading_div").hide();
                                             if(response.status){
                                                 $.toaster({ priority : 'success', title : 'Success!', message : response.message });
-                                                accountExists = true;
+                                                adminAccountExists = true;
                                                 transferAmount(requestId, amountInSatoshi, bitcoinAccountAddress);
                                             }else{
                                                 $.toaster({ priority : 'danger', title : 'Failed!', message : response.message });
                                             }
                                         },
-                                        fail: function(){
-                                            $("#loading").hide();
-                                            $.toaster({ priority : 'danger', title : 'Failed!', message : 'Request Failed!' });
+                                        error: function(){
+                                            this.tryCount++;
+                                            if (this.tryCount <= this.retryLimit) {
+                                                $.ajax(this);
+                                                return;
+                                            }
                                         }
                                     });
                                 }
@@ -147,19 +182,68 @@
                         }
                     });
                 } else {
-                    transferAmount(requestId, amountInSatoshi, bitcoinAccountAddress);
+                    $.confirm({
+                        title: 'Transfer Bitcoin',
+                        content: 'Are you sure to continue ?',
+                        buttons: {
+                            confirm: function () {
+                                transferAmount(requestId, amountInSatoshi, bitcoinAccountAddress);
+                            },
+                            cancel: function () {
+                                $("#loading_div").hide();
+                            }
+                        }
+                    });
                 }
             }
+        });
 
+        $("#delete_admin_account").click(function(e) {
+            e.preventDefault();
+            $.confirm({
+                title: 'Delete Admin Account',
+                content: 'Are you sure to continue ?',
+                buttons: {
+                    confirm: function () {
+                        $("#loading_div").show();
+                        $.ajax({
+                            url: "{{ url('api/delete-admin-account-detail') }}",
+                            type: 'POST',
+                            tryCount : 0,
+                            retryLimit : 3,
+                            success: function(response){
+                                $("#loading_div").hide();
+                                if(response.status){
+                                    $.toaster({ priority : 'success', title : 'Success!', message : response.message });
+                                    $("#admin_account_div").html('<p class="lead">Please <a href="{{ url("add-admin-account-detail") }}" style="text-decoration: underline;">click here</a> to add your blockchain account details.</p>');
+                                }else{
+                                    $.toaster({ priority : 'danger', title : 'Failed!', message : response.message });
+                                }
+                            },
+                            error: function(){
+                                this.tryCount++;
+                                if (this.tryCount <= this.retryLimit) {
+                                    $.ajax(this);
+                                    return;
+                                }
+                            }
+                        });
+                    },
+                    cancel: function () {
+                        $("#loading_div").hide();
+                    }
+                }
+            });
         });
     });
 
     function transferAmount(requestId, amountInSatoshi, bitcoinAccountAddress) {
+        $("#loading_div").show();
         $.ajax({
             url: "{{ url('api/transfer-payment') }}",
             method: "POST",
-            tryCount : 0,
-            retryLimit : 3,
+            tryCount1 : 0,
+            retryLimit1 : 3,
             data: {
                 requestId: requestId,
                 amountInSatoshi: amountInSatoshi,
@@ -171,12 +255,13 @@
                     $.toaster({ priority : 'success', title : 'Success', message : response.message });
                     $("#action_link_"+requestId).html('Paid');
                 } else {
+                    $("#loading_div").hide();
                     $.toaster({ priority : 'danger', title : 'Failed', message : response.message });
                 }
             },
             error: function() {
-                this.tryCount++;
-                if (this.tryCount <= this.retryLimit) {
+                this.tryCount1++;
+                if (this.tryCount1 <= this.retryLimit1) {
                     $.ajax(this);
                     return;
                 }

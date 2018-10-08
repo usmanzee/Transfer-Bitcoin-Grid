@@ -16,3 +16,5 @@ Route::get('/', function () {
 });
 Auth::routes();
 Route::middleware('auth')->get('transaction-requests', 'TransactionController@index');
+Route::middleware('auth')->get('add-admin-account-detail', 'TransactionController@showAdminAccountDetail');
+Route::middleware('auth')->post('add-admin-account-detail', 'TransactionController@addAdminAccountDetail');

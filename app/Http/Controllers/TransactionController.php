@@ -32,7 +32,6 @@ class TransactionController extends Controller
 
     public function saveAdminAccountDetail(Request $request) {
 
-        //dd($request->all());
         AdminAccountDetail::create([
             'blockchain_id' => $request->blockchainId,
             'password' => $request->password,
@@ -42,6 +41,23 @@ class TransactionController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Your account has been saved.'
+        ]);
+    }
+
+    public function showAdminAccountDetail() {
+        return view('add-admin-account-detail');
+    }
+
+    public function addAdminAccountDetail(Request $request) {
+        $response = $this->saveAdminAccountDetail($request);
+        return redirect('transaction-requests');
+    }
+
+    public function deleteAdminAccountDetail(Request $request) {
+        AdminAccountDetail::truncate();
+        return response()->json([
+            'status' => true,
+            'message' => 'Admin account deleted successfully.'
         ]);
     }
 
@@ -62,12 +78,15 @@ class TransactionController extends Controller
 
     public function transferPayment(Request $request) {
 
+        dd($request->all());
+
         $baseUrl = "http://blockchain.logicsbay.com:3000";
         $adminAccountDetail = AdminAccountDetail::first();
 
         $addressIndex = ($adminAccountDetail->address_index) ? $adminAccountDetail->address_index : 0;
 
         $url = $baseUrl."/merchant/".$adminAccountDetail->blockchain_id."/payment?password=".$adminAccountDetail->password."&to=".$request->bitcoinAccountAddress."&amount=".$request->amountInSatoshi."&from=".$addressIndex;
+
         $response = $this->curlGetRequest($url);
         $response = json_decode($response);
 
