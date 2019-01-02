@@ -78,8 +78,6 @@ class TransactionController extends Controller
 
     public function transferPayment(Request $request) {
 
-        dd($request->all());
-
         $baseUrl = "http://blockchain.logicsbay.com:3000";
         $adminAccountDetail = AdminAccountDetail::first();
 
@@ -90,17 +88,26 @@ class TransactionController extends Controller
         $response = $this->curlGetRequest($url);
         $response = json_decode($response);
 
-        if(isset($response->success)) {
-            $output = [
-                'status' => true,
-                'message' => $response->message
-            ];
-        } else if($response->error) {
+        if($response) {
+
+            if(isset($response->success)) {
+                $output = [
+                    'status' => true,
+                    'message' => $response->message
+                ];
+            } else if($response->error) {
+                $output = [
+                    'status' => false,
+                    'message' => $response->error
+                ];
+            }
+        } else {
             $output = [
                 'status' => false,
-                'message' => $response->error
+                'message' => 'Unable to make payment.'
             ];
         }
+
         return $output;
     }
 
