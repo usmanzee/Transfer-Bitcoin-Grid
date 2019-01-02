@@ -16,7 +16,7 @@ class Coinbase extends Model
 {
     public function createClientAndSendPayment($address= "", $amount= "") {
 
-    	//dd($amount);
+    	dd($amount);
 
     	$configuration = Configuration::apiKey('A07yTBPeCpzdwKKi', '1ma5fkPE214KoECB5Wnui55qHWF9zaQS');
 		$client = Client::create($configuration);
